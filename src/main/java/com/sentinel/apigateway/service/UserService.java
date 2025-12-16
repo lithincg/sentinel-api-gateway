@@ -22,7 +22,9 @@ public class UserService {
     private final BCryptPasswordEncoder passwordEncoder;
     private final ApiKeyRepository apiKeyRepository;
     @Transactional
-    public User registerUser(String email, String rawPassword){
+    public User registerUser(UserRegistrationRequest userRegistrationRequest) {
+        String email=userRegistrationRequest.email();
+        String rawPassword=userRegistrationRequest.password();
         if(userRepository.findByEmail(email).isPresent()){
             throw new DuplicateUserException("Email already exists");
         }
