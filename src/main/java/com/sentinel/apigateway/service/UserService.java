@@ -1,5 +1,6 @@
 package com.sentinel.apigateway.service;
 
+import com.sentinel.apigateway.dto.UserRegistrationRequest;
 import com.sentinel.apigateway.entity.ApiKey;
 import com.sentinel.apigateway.entity.User;
 import com.sentinel.apigateway.exception.DuplicateUserException;
