@@ -8,14 +8,17 @@ public class RateLimiterService {
     private int requestCount = 0;
 
     public boolean allowRequest() {
-        if (requestCount < 100) {
-            requestCount++;
-            return true;
+        synchronized(this) {
+            if (requestCount < 100) {
+                requestCount++;
+                return true;
+            }
         }
-        return false;
+            return false;
+
     }
 
-    public int getRequestCount() {
+    public synchronized int getRequestCount() {
         return requestCount;
     }
 }
