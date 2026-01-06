@@ -1,23 +1,27 @@
 package com.sentinel.apigateway.service;
 
 import org.springframework.stereotype.Service;
+
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 public class RateLimiterService {
 
-    private final AtomicInteger requestCount = new AtomicInteger(0);
+    private final ConcurrentHashMap<String, AtomicInteger> counters = new ConcurrentHashMap<>();
 
-    public boolean allowRequest() {
-        int current = requestCount.incrementAndGet();
+    public boolean allowRequest(String apiKey) {
+        AtomicInteger counter = counters.computeIfAbsent(apiKey, k -> new AtomicInteger(0));
+
+        int current = counter.incrementAndGet();
         if (current <= 100) {
             return true;
         }
-        requestCount.decrementAndGet();
+        counter.decrementAndGet();
         return false;
     }
 
-    public int getRequestCount() {
-        return requestCount.get();
+    public int getRequestCount(String apiKey) {
+        return counters.computeIfAbsent(apiKey, k -> new AtomicInteger(0)).get();
     }
 }
