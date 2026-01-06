@@ -1,24 +1,23 @@
 package com.sentinel.apigateway.service;
 
 import org.springframework.stereotype.Service;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 public class RateLimiterService {
 
-    private int requestCount = 0;
+    private final AtomicInteger requestCount = new AtomicInteger(0);
 
     public boolean allowRequest() {
-        synchronized(this) {
-            if (requestCount < 100) {
-                requestCount++;
-                return true;
-            }
+        int current = requestCount.incrementAndGet();
+        if (current <= 100) {
+            return true;
         }
-            return false;
-
+        requestCount.decrementAndGet();
+        return false;
     }
 
-    public synchronized int getRequestCount() {
-        return requestCount;
+    public int getRequestCount() {
+        return requestCount.get();
     }
 }
