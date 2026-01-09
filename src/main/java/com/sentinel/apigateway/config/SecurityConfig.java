@@ -1,5 +1,6 @@
 package com.sentinel.apigateway.config;
 
+import com.sentinel.apigateway.filter.RateLimiterFilter;
 import com.sentinel.apigateway.security.ApiKeyAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -17,7 +18,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final ApiKeyAuthFilter apiKeyAuthFilter;
-
+    private final RateLimiterFilter  rateLimiterFilter;
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
@@ -28,7 +29,8 @@ public class SecurityConfig {
                         .anyRequest()
                         .authenticated()
                 )
-                .addFilterBefore(apiKeyAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(rateLimiterFilter, org.springframework.security.web.header.HeaderWriterFilter.class)
+                .addFilterBefore(apiKeyAuthFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 }
