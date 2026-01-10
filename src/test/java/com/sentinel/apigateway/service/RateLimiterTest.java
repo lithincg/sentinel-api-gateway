@@ -17,7 +17,7 @@ class RateLimiterTest {
             threads[i] = new Thread(() -> {
                 try {
                     latch.await();
-                    service.allowRequest();
+                    service.allowRequest("USER_X");
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
