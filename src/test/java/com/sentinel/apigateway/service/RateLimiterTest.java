@@ -30,10 +30,25 @@ class RateLimiterTest {
         for (Thread t : threads) {
             t.join();
         }
+        System.out.println("Actual Count: " + service.getRequestCount("USER_X"));
+        assertTrue(service.getRequestCount("USER_X") > 0);
+        assertTrue(service.getRequestCount("USER_X") <= totalRequests);
+    }
+    @Test
+    void testPerUserIsolation() {
+        RateLimiterService service = new RateLimiterService();
+        String userA = "ALPHA";
+        String userB = "BETA";
+        for (int i = 0; i < 100; i++) {
+            service.allowRequest(userA);
+        }
 
-        System.out.println("Actual Count: " + service.getRequestCount());
+        boolean allowedA = service.allowRequest(userA);
+        org.junit.jupiter.api.Assertions.assertFalse(allowedA, "User A should be blocked");
 
-        assertTrue(service.getRequestCount() > 0);
-        assertTrue(service.getRequestCount() <= totalRequests);
+        boolean allowedB = service.allowRequest(userB);
+        org.junit.jupiter.api.Assertions.assertTrue(allowedB, "User B should be allowed even if A is blocked");
+
+        org.junit.jupiter.api.Assertions.assertEquals(1, service.getRequestCount(userB));
     }
 }
