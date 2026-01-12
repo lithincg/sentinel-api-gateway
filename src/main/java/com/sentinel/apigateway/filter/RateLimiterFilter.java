@@ -5,6 +5,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -26,13 +27,24 @@ public class RateLimiterFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String apiKey = request.getHeader("X-API-KEY");
-        if (apiKey == null) {
+        if (apiKey == null || apiKey.isBlank()) {
             apiKey = "ANONYMOUS";
         }
 
         if (!rateLimiterService.allowRequest(apiKey)) {
-            response.setStatus(429);
-            response.getWriter().write("Too Many Requests - Get an API Key.");
+            response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+
+            String jsonError = """
+                {
+                    "error": "Rate limit exceeded",
+                    "status": 429,
+                    "message": "You have exhausted your request quota. Please try again later."
+                }
+                """;
+
+            response.getWriter().write(jsonError);
             return;
         }
 
