@@ -9,7 +9,7 @@ services:
       - POSTGRES_PASSWORD=sentinel_pass
       - POSTGRES_DB=sentinel_gateway
     ports:
-      - "5432:5432"
+      - "6399:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: always
