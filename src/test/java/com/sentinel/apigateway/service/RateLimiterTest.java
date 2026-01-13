@@ -1,5 +1,7 @@
 package com.sentinel.apigateway.service;
 
+import com.sentinel.apigateway.repository.InMemoryRateLimitRepository;
+import com.sentinel.apigateway.repository.RateLimitRepository;
 import org.junit.jupiter.api.Test;
 import java.util.concurrent.CountDownLatch;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -8,7 +10,8 @@ class RateLimiterTest {
 
     @Test
     void testConcurrentAccess() throws InterruptedException {
-        RateLimiterService service = new RateLimiterService();
+        RateLimitRepository repository = new InMemoryRateLimitRepository();
+        RateLimiterService service = new RateLimiterService(repository);
         int totalRequests = 1000;
         CountDownLatch latch = new CountDownLatch(1);
         Thread[] threads = new Thread[totalRequests];
@@ -36,7 +39,8 @@ class RateLimiterTest {
     }
     @Test
     void testPerUserIsolation() {
-        RateLimiterService service = new RateLimiterService();
+        RateLimitRepository repository = new InMemoryRateLimitRepository();
+        RateLimiterService service = new RateLimiterService(repository);
         String userA = "ALPHA";
         String userB = "BETA";
         for (int i = 0; i < 100; i++) {
