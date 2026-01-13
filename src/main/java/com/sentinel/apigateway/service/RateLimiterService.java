@@ -1,27 +1,30 @@
 package com.sentinel.apigateway.service;
 
+import com.sentinel.apigateway.repository.RateLimitRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
+@RequiredArgsConstructor
 public class RateLimiterService {
 
-    private final ConcurrentHashMap<String, AtomicInteger> counters = new ConcurrentHashMap<>();
+    private final RateLimitRepository rateLimitRepository;
 
     public boolean allowRequest(String apiKey) {
-        AtomicInteger counter = counters.computeIfAbsent(apiKey, k -> new AtomicInteger(0));
 
-        int current = counter.incrementAndGet();
-        if (current <= 100) {
-            return true;
-        }
-        counter.decrementAndGet();
-        return false;
+        long windowMs = 60000;
+        int maxRequests = 100;
+
+
+        long currentCount = rateLimitRepository.recordRequest(apiKey, windowMs, maxRequests);
+
+        return currentCount <= maxRequests;
     }
 
-    public int getRequestCount(String apiKey) {
-        return counters.computeIfAbsent(apiKey, k -> new AtomicInteger(0)).get();
+    public long getRequestCount(String apiKey) {
+        return rateLimitRepository.getCurrentCount(apiKey, 60000);
     }
 }
