@@ -19,9 +19,9 @@ public class RateLimiterService {
         int maxRequests = 100;
 
 
-        long currentCount = rateLimitRepository.recordRequest(apiKey, windowMs, maxRequests);
+        long result = rateLimitRepository.recordRequest(apiKey, windowMs, maxRequests);
 
-        return currentCount <= maxRequests;
+        return result == 1;
     }
 
     public long getRequestCount(String apiKey) {

@@ -5,7 +5,7 @@ local request_id = ARGV[4]
 
 local window_start = current_time - window_size
 
-redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', window_start)
+redis.call('ZREMRANGEBYSCORE', KEYS[1], 0, window_start)
 
 local current_count = redis.call('ZCARD', KEYS[1])
 
@@ -16,7 +16,7 @@ if current_count < max_requests then
     local expiry_seconds = math.ceil(window_size / 1000) + 10
     redis.call('EXPIRE', KEYS[1], expiry_seconds)
 
-    return current_count + 1
+    return 1
 else
-    return current_count
+    return 0
 end
