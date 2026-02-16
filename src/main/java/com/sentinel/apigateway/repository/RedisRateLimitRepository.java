@@ -17,9 +17,11 @@ public class RedisRateLimitRepository implements RateLimitRepository {
     private final StringRedisTemplate redisTemplate;
     private final RedisScript<Long> script;
     private static final String KEY_PREFIX = "rl:v1:";
+    private final InMemoryRateLimitRepository fallback;
 
-    public RedisRateLimitRepository(StringRedisTemplate redisTemplate) {
+    public RedisRateLimitRepository(StringRedisTemplate redisTemplate,InMemoryRateLimitRepository fallback) {
         this.redisTemplate = redisTemplate;
+        this.fallback = fallback;
 
         DefaultRedisScript<Long> redisScript = new DefaultRedisScript<>();
         redisScript.setLocation(new ClassPathResource("scripts/sliding_window.lua"));
@@ -41,7 +43,8 @@ public class RedisRateLimitRepository implements RateLimitRepository {
             );
             return (count != null) ? count : 0L;
         } catch (Exception e) {
-            return 0L;
+            System.err.println("Redis error, falling back to in-memory: " + e.getMessage());
+            return fallback.recordRequest(apiKey, windowMs, maxRequests);
         }
     }
 
@@ -55,7 +58,8 @@ public class RedisRateLimitRepository implements RateLimitRepository {
             Long count = redisTemplate.opsForZSet().count(redisKey, (double) windowStart, (double) currentTime);
             return (count != null) ? count : 0L;
         } catch (Exception e) {
-            return 0L;
+            System.err.println("Redis error, falling back to in-memory: " + e.getMessage());
+            return fallback.getCurrentCount(apiKey, windowMs);
         }
     }
 }
