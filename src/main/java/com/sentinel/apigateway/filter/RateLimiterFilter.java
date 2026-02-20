@@ -21,14 +21,21 @@ public class RateLimiterFilter extends OncePerRequestFilter {
     }
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return path.startsWith("/health");
+    }
+
+    @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
         String apiKey = request.getHeader("X-API-KEY");
+
         if (apiKey == null || apiKey.isBlank()) {
-            apiKey = "ANONYMOUS";
+            apiKey = request.getRemoteAddr();
         }
 
         if (!rateLimiterService.allowRequest(apiKey)) {
