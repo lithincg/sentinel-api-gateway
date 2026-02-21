@@ -50,7 +50,7 @@ public class RateLimiterFilter extends OncePerRequestFilter {
                     "message": "You have exhausted your request quota. Please try again later."
                 }
                 """;
-
+            response.setHeader("Retry-After", "60");
             response.getWriter().write(jsonError);
             return;
         }
