@@ -1,8 +1,8 @@
 spring.application.name=sentinel-gateway
 # DATABASE (LOCAL DOCKER)
 spring.datasource.url=jdbc:postgresql://localhost:6399/sentinel_gateway?options=-c%20timezone=UTC
-spring.datasource.username=sentinel_user
-spring.datasource.password=sentinel_pass
+spring.datasource.username=
+spring.datasource.password=
 spring.datasource.driver-class-name=org.postgresql.Driver
 
 # REDIS
@@ -19,3 +19,6 @@ server.port=8080
 
 # DOCKER
 spring.docker.compose.enabled=false
+
+#JWT
+jwt.secretKey=
