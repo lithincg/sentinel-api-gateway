@@ -34,12 +34,12 @@ public class JwtUtil {
                 .getPayload();
     }
 
-    public String generateToken(Long userId){
+    public String generateToken(String email){
         Instant now = Instant.now();
         Date expiryDate = Date.from(Instant.now().plus(expirationMinutes, ChronoUnit.MINUTES));
 
         return Jwts.builder()
-                .subject(userId.toString())
+                .subject(email)
                 .issuedAt(Date.from(now))
                 .expiration(expiryDate)
                 .signWith(getSigningKey())
@@ -58,9 +58,8 @@ public class JwtUtil {
         }
     }
 
-        public Long getUserId(String token) {
-                String subject = getClaims(token).getSubject();
-                return Long.parseLong(subject);
+        public String getEmail(String token) {
+                return getClaims(token).getSubject();
         }
 
 }
