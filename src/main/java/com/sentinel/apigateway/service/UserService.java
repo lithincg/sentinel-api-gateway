@@ -67,7 +67,7 @@ public class UserService {
     public String login(String email, String password){
         Optional<User> user = userRepository.findByEmail(email);
         if(user.isPresent() && passwordEncoder.matches(password, user.get().getPasswordHash())){
-            return jwtUtil.generateToken(user.get().getId());
+            return jwtUtil.generateToken(user.get().getEmail());
 
         }
         throw new InvalidCredentialsException("Invalid username or password");
