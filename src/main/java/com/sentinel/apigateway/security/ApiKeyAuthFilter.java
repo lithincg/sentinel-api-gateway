@@ -25,7 +25,16 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path.startsWith("/health") || path.startsWith("/api/auth");
+        if(path.startsWith("/health") || path.startsWith("/api/auth/"))
+            return true;
+        else{
+            String authHeader = request.getHeader("Authorization");
+            String rawKey = request.getHeader("X-API-KEY");
+            if (authHeader != null && authHeader.startsWith("Bearer ") && rawKey == null )
+                return true;
+            else
+                return false;
+        }
     }
 
     @Override
@@ -46,7 +55,7 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
             return;
         }
         String prefix = rawKey.substring(0, 5);
-        var candidates = apiKeyRepository.findByKeyPrefixAndActiveTrue(prefix);
+        var candidates = apiKeyRepository.findByKeyPrefixAndActiveTrueWithUser(prefix);
         for (var key : candidates) {
             if (passwordEncoder.matches(rawKey, key.getKeyHash())) {
                 var auth = new UsernamePasswordAuthenticationToken(
