@@ -1,13 +1,16 @@
 package com.sentinel.apigateway.service;
 
+import com.sentinel.apigateway.dto.LoginResponse;
 import com.sentinel.apigateway.dto.UserRegistrationRequest;
 import com.sentinel.apigateway.entity.ApiKey;
 import com.sentinel.apigateway.entity.User;
 import com.sentinel.apigateway.exception.DuplicateUserException;
+import com.sentinel.apigateway.exception.InvalidCredentialsException;
 import com.sentinel.apigateway.exception.UserNotFoundException;
 import com.sentinel.apigateway.repository.ApiKeyRepository;
 import com.sentinel.apigateway.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +25,8 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final ApiKeyRepository apiKeyRepository;
+    private final JwtUtil jwtUtil;
+
     @Transactional
     public User registerUser(UserRegistrationRequest userRegistrationRequest) {
         String email=userRegistrationRequest.email();
@@ -57,6 +62,15 @@ public class UserService {
 
         throw new UserNotFoundException("User not found");
 
+    }
+
+    public String login(String email, String password){
+        Optional<User> user = userRepository.findByEmail(email);
+        if(user.isPresent() && passwordEncoder.matches(password, user.get().getPasswordHash())){
+            return jwtUtil.generateToken(user.get().getId());
+
+        }
+        throw new InvalidCredentialsException("Invalid username or password");
     }
 
 }
