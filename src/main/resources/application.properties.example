@@ -22,4 +22,4 @@ spring.docker.compose.enabled=false
 
 #JWT
 jwt.secretKey=
-expiration-minutes=
+jwt.expiration-minutes=
