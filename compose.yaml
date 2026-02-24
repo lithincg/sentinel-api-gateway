@@ -21,5 +21,15 @@ services:
       - "6380:6379"
     restart: always
 
+  sentinel-gateway:
+    build: .
+    container_name: sentinel-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - redis
+    restart: always
+
 volumes:
   postgres_data:
