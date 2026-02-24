@@ -18,8 +18,13 @@ Content-Type: application/json
 
 ### Get API Key
 POST http://localhost:8080/api/keys
-Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ0ZXN0QHNlbnRpbmVsLmNvbSIsImlhdCI6MTc3MTg1NjU0NiwiZXhwIjoxNzcxODYwMTQ2fQ.IECH7FVmoPzKytZKzBufF56P8RnIYYdHfg42WxggAopxauK15vKArjFhK3trDMTXXdFPY2xlaGvepgNaAVY0Ww
+Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ0ZXN0QHNlbnRpbmVsLmNvbSIsImlhdCI6MTc3MTk0Nzk0MiwiZXhwIjoxNzcxOTUxNTQyfQ.mty30jyZzPpWLm4yPJkBdIzsdrmN8ZKbMSpmIrEZTZN24jVXOqTLRxFfWUUwHlAAr-gOTjaY5ndyabtCX8TIUw
 
 ### Test API Key
 POST http://localhost:8080/api/keys
-X-API-KEY: replaceWithApiKey
+X-API-KEY: 5c16ea4b63874adf8ac07740ae241cd2
+
+
+### Test Actuactor paths
+GET http://localhost:8080/actuator/health
+X-API-KEY: 5c16ea4b63874adf8ac07740ae241cd2
