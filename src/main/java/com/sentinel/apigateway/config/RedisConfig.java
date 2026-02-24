@@ -11,7 +11,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 public class RedisConfig {
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
-        return new LettuceConnectionFactory(new RedisStandaloneConfiguration("localhost", 6380));
+        return new LettuceConnectionFactory(new RedisStandaloneConfiguration("redis", 6379));
     }
     @Bean
     public StringRedisTemplate redisTemplate(RedisConnectionFactory connectionFactory) {
