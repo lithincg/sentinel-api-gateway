@@ -1,0 +1,23 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'sentinel-gateway-monitor'
+
+scrape_configs:
+  - job_name: 'sentinel-gateway'
+    static_configs:
+      - targets: ['sentinel-gateway:8080']
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['sentinel-db:5432']
+    scrape_interval: 30s
+
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['sentinel-redis:6379']
+    scrape_interval: 30s
