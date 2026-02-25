@@ -31,5 +31,16 @@ services:
       - redis
     restart: always
 
+  prometheus:
+    image: prom/prometheus
+    container_name: sentinel-prometheus
+    ports:
+    - "9090:9090"
+    depends_on:
+      - sentinel-gateway
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    restart: always
+
 volumes:
   postgres_data:
