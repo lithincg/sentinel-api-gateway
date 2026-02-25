@@ -23,7 +23,7 @@ public class RateLimiterFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path.startsWith("/health");
+        return path.startsWith("/health") || path.startsWith("/actuator/");
     }
 
     @Override
