@@ -6,6 +6,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -13,7 +14,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
+import java.util.HexFormat;
+import java.util.concurrent.TimeUnit;
 
 @Component
 @RequiredArgsConstructor
@@ -21,6 +27,7 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
 
     private final ApiKeyRepository apiKeyRepository;
     private final PasswordEncoder passwordEncoder;
+    private final StringRedisTemplate redisTemplate;
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -54,16 +61,35 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
             response.getWriter().write("Invalid API Key Format");
             return;
         }
+        String encodedKey;
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(rawKey.getBytes(StandardCharsets.UTF_8));
+            encodedKey = HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Internal Security Configuration Error", e);
+        }
+
+        String cachedEmail = redisTemplate.opsForValue().get(encodedKey);
+        if (cachedEmail != null) {
+            SecurityContextHolder.getContext().setAuthentication(
+                    new UsernamePasswordAuthenticationToken(cachedEmail, null, Collections.emptyList())
+            );
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String prefix = rawKey.substring(0, 5);
         var candidates = apiKeyRepository.findByKeyPrefixAndActiveTrueWithUser(prefix);
+
         for (var key : candidates) {
             if (passwordEncoder.matches(rawKey, key.getKeyHash())) {
-                var auth = new UsernamePasswordAuthenticationToken(
-                        key.getUser().getEmail(),
-                        null,
-                        Collections.emptyList()
+                String email = key.getUser().getEmail();
+                redisTemplate.opsForValue().set(encodedKey, email, 5, TimeUnit.MINUTES);
+
+                SecurityContextHolder.getContext().setAuthentication(
+                        new UsernamePasswordAuthenticationToken(email, null, Collections.emptyList())
                 );
-                SecurityContextHolder.getContext().setAuthentication(auth);
                 filterChain.doFilter(request, response);
                 return;
             }
