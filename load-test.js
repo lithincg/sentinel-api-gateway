@@ -3,10 +3,10 @@ import { sleep } from 'k6';
 
 export const options = {
     stages: [
-        { duration: "5s", target: 10 },
-        { duration: "5s", target: 15 },
-        { duration: "5s", target: 20 },
-        { duration: "2m", target: 20 },
+        // { duration: "5s", target: 10 },
+        // { duration: "5s", target: 15 },
+        // { duration: "5s", target: 20 },
+        { duration: "2m", target: 29 },
     ]
 };
 
@@ -30,7 +30,15 @@ const keys = [
     "fe938f735b234470997dd8a32860af52",
     "b20c26c3c1ae49b0a7dd185edaa984dc",
     "b4275ef08c744cc58b7fa75f631e22bf",
-    "0ea3f967b44740858207dfed86d7f72a"
+    "0ea3f967b44740858207dfed86d7f72a",
+    "b4631245cbe2484595be2e2f224d8871",
+    "90a96b374a864a38b4554192ea4e487d",
+    "ca79fc71553b4026b308e24003439948",
+    "def319885c8640c89a92f294a741378f",
+    "fe938f735b234470997dd8a32840af52",
+    "b20c26c3c1ae49b0a7dd185eda4984dc",
+    "b4275ef08c744cc58b7fa75f634e22bf",
+    "0ea3f967b44740858207dfed8647f72a"
 ];
 
 export default function() {
