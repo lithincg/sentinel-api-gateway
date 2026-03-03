@@ -28,3 +28,7 @@ X-API-KEY: 5c16ea4b63874adf8ac07740ae241cd2
 ### Test Actuactor paths
 GET http://localhost:8080/actuator/health
 X-API-KEY: 5c16ea4b63874adf8ac07740ae241cd2
+
+### Hit /api/dummy endpoint
+GET http://localhost:8080/api/dummy
+X-API-KEY: 5c16ea4b63874adf8ac07740ae241cd2
