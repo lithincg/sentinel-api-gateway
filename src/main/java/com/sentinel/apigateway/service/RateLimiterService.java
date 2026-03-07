@@ -16,7 +16,7 @@ public class RateLimiterService {
     public boolean allowRequest(String apiKey) {
 
         long windowMs = 60000;
-        int maxRequests = 100;
+        int maxRequests = 1000000;
 
 
         long result = rateLimitRepository.recordRequest(apiKey, windowMs, maxRequests);
