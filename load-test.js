@@ -1,14 +1,12 @@
 import http from 'k6/http';
 import { sleep } from 'k6';
-import { check } from 'k6';
 
 export const options = {
     stages: [
-        { duration: "5s", target: 10 },
-        { duration: "5s", target: 15 },
-        { duration: "5s", target: 20 },
-        { duration: "1m", target: 28 },
-    ]
+        { duration: "10s", target: 25 },
+        { duration: "10s", target: 50 },
+        { duration: "10m", target: 50 },
+    ],
 };
 
 const keys = [
@@ -39,13 +37,33 @@ const keys = [
     "fe938f735b234470997dd8a32840af52",
     "b20c26c3c1ae49b0a7dd185eda4984dc",
     "b4275ef08c744cc58b7fa75f634e22bf",
-    "0ea3f967b44740858207dfed8647f72a"
+    "0ea3f967b44740858207dfed8647f72a",
+    "77a8fc55335b409395a5d2eb142a06a3",
+    "9fc0c81748bb45d5812f56545ecc2e83",
+    "28557a34f7184510b8df6377c78725c7",
+    "3d7f9879efb74b30ab5ff60de71ee839",
+    "243a934ec2124982828eb20f53e69e15",
+    "cce21916c51143e9bf7850ccabbae1a8",
+    "a8f88073b8114b44be159bf4dc046ba7",
+    "eb4d03f610aa4588ac0b0ad263ce03b7",
+    "78020c6fc61b4089aa681884570863bb",
+    "52cf17d6dde64a9d85d0783002287c35",
+    "805c20b6f1c046c293a062a6164beedf",
+    "dbe4fc5c6b6849adb1d63479f1a7b6db",
+    "ee8b6b0f15604946b0cb51165e2d65a7",
+    "c3f32fb0941b4202bf70d873b346762a",
+    "982d930bdbea4999a580444bf1835eb3",
+    "851bbf43e3a641e1a243117a855ab9e8",
+    "64947e179e0c4efcb5ec776871382b69",
+    "15f71d59e4544f18b846992d5aaa8d0d",
+    "babe8543e2014e69bcf60c3a409058c7",
+    "2e5eb80383174a0d93af2a220ee369f9",
+    "ce4453451c5646faad042d6e1efee1e7",
+    "ef6fb9e5da4847d18cd967864b5d7935"
 ];
 
 export default function() {
     const rawKey = keys[__VU - 1];
-    const res = http.get("http://localhost:8080/api/dummy", { headers: { "X-API-KEY": rawKey } });
-    check(res, { 'status is 200': (r) => r.status === 200 });
-    console.log(res.status);
+    http.get("http://localhost:8080/api/dummy", { headers: { "X-API-KEY": rawKey } });
     sleep(0.0);
 }

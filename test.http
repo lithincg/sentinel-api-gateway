@@ -18,7 +18,7 @@ Content-Type: application/json
 
 ### Get API Key
 POST http://localhost:8080/api/keys
-Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ0ZXN0QHNlbnRpbmVsLmNvbSIsImlhdCI6MTc3MTk0Nzk0MiwiZXhwIjoxNzcxOTUxNTQyfQ.mty30jyZzPpWLm4yPJkBdIzsdrmN8ZKbMSpmIrEZTZN24jVXOqTLRxFfWUUwHlAAr-gOTjaY5ndyabtCX8TIUw
+Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ0ZXN0QHNlbnRpbmVsLmNvbSIsImlhdCI6MTc3Mjk1MDg2MywiZXhwIjoxNzcyOTU0NDYzfQ.wFPp1rZnlxeyptwHPaq9QwgF_5zeDjb6O2qlfpL-KjHk_8xuQcyUlV8OZL-a480z-YSI07J5FRhZ1h3Z9BremA
 
 ### Test API Key
 POST http://localhost:8080/api/keys
