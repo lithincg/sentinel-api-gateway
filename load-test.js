@@ -6,7 +6,7 @@ export const options = {
         // { duration: "5s", target: 10 },
         // { duration: "5s", target: 15 },
         // { duration: "5s", target: 20 },
-        { duration: "2m", target: 29 },
+        { duration: "1m", target: 28 },
     ]
 };
 
@@ -44,5 +44,5 @@ const keys = [
 export default function() {
     const rawKey = keys[__VU - 1];
     http.get("http://localhost:8080/api/dummy", { headers: { "X-API-KEY": rawKey } });
-    sleep(0.4);
+    sleep(0.0);
 }
