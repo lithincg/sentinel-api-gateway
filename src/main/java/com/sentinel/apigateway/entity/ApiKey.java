@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @Entity
+@Table(name="api_keys")
 public class ApiKey {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
