@@ -240,7 +240,7 @@ Test endpoint used for load testing. Requires authentication.
 ### Run with Docker Compose
 
 ```bash
-git clone https://github.com/your-username/sentinel-api-gateway
+git clone https://github.com/lithincg/sentinel-api-gateway
 cd sentinel-api-gateway
 docker compose up --build
 ```
