@@ -32,7 +32,7 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        if(path.startsWith("/health") || path.startsWith("/api/auth/") || path.startsWith("/actuator/"))
+        if(path.startsWith("/health") || path.startsWith("/api/auth/") || path.startsWith("/actuator/") || path.equals("/"))
             return true;
         else{
             String authHeader = request.getHeader("Authorization");
