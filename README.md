@@ -2,8 +2,6 @@
 
 A production-style API gateway built with Spring Boot 3.4, featuring Redis-backed rate limiting, two authentication mechanisms, and API key caching with measurable performance results.
 
-**Live URL:** https://sentinel-api-gateway-production.up.railway.app
-
 ---
 
 ## Features
