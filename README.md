@@ -1,16 +1,17 @@
 # Sentinel API Gateway
 
-A production-style API gateway built with Spring Boot 3.4, featuring Redis-backed rate limiting, two authentication mechanisms, and API key caching with measurable performance results.
+A production-style API gateway built with Spring Boot 3.4. It pairs two authentication mechanisms and Redis-backed sliding-window rate limiting with the operational qualities that decide whether a service survives production: graceful degradation when Redis fails, first-class observability (Prometheus, Grafana, Actuator), and measured, load-tested performance (94% latency reduction, 24x throughput). Built to be defensible on reliability and operations, not just its feature list.
 
 ---
 
 ## Features
 
-- **Redis sliding window rate limiting** with atomic Lua script execution and automatic in-memory fallback
-- **Two authentication paths**: JWT for user sessions, API key authentication for programmatic access
-- **API key caching** via SHA-256 hashing to eliminate BCrypt verification on cache hits
-- **Observability**: Prometheus metrics and Grafana dashboards (local), Spring Boot Actuator (live)
-- **Deployed** on Railway with PostgreSQL and Redis
+- **Resilient rate limiting** — sliding window backed by an atomic Redis Lua script, with **automatic in-memory failover** when Redis is unavailable, so the gateway degrades gracefully instead of failing outright
+- **Layered authentication** — JWT for user sessions, API keys for programmatic access, with a full key lifecycle: issue, list, and revoke
+- **Cache-backed API key auth** — SHA-256 lookup (5-min TTL) eliminates per-request BCrypt cost; 94% lower latency, validated under load with k6
+- **Instant key revocation** — atomic DB deactivation plus Redis cache eviction, so a revoked key stops authenticating immediately rather than lingering until TTL
+- **First-class observability** — Prometheus metrics, Grafana dashboards (local), and Spring Boot Actuator health on the live deployment
+- **Deployed** on Railway with managed PostgreSQL and Redis
 
 ---
 
@@ -61,6 +62,8 @@ Controller / Business Logic
 
 **SHA-256 as cache key** — Storing the raw API key in Redis would expose valid credentials to anyone with Redis access. SHA-256 is a one-way hash; the cache maps `hash(rawKey) → userEmail`, so even full Redis exposure reveals nothing replayable.
 
+**Deterministic lookup hash for revocation** — The cache is keyed by `SHA-256(rawKey)`, but the raw key is never persisted (only its BCrypt hash is). That leaves revocation with no way to compute the cache entry to delete. Storing a SHA-256 lookup hash alongside each key closes the gap: revocation deactivates the database record *and* deletes the exact Redis entry, so a revoked key stops authenticating immediately instead of surviving until the 5-minute TTL. Ownership is enforced on revoke — a key belonging to another user returns `404`, never leaking whether that id exists.
+
 **In-memory fallback** — Redis is a network dependency. If it becomes unavailable, the gateway continues rate limiting per-instance using `ConcurrentHashMap` and `AtomicInteger`. The trade-off is that per-instance limits do not coordinate across replicas, but availability is maintained.
 
 ---
@@ -90,7 +93,7 @@ src/main/java/com/sentinel/apigateway/
 │   └── PasswordEncoderConfig.java    # BCrypt bean
 ├── controller/
 │   ├── AuthController.java           # Register, login
-│   ├── ApiKeyController.java         # Key generation
+│   ├── ApiKeyController.java         # Key generation, listing, revocation
 │   ├── HealthController.java
 │   └── DummyEndpoint.java            # Load test target
 ├── filter/
@@ -114,7 +117,8 @@ src/main/resources/
 ├── scripts/
 │   └── sliding_window.lua            # Atomic rate limit script
 └── db/migration/
-    └── V1__init_schema.sql
+    ├── V1__init_schema.sql
+    └── V2__add_api_key_lookup_hash.sql   # SHA-256 lookup hash for cache-evicting revocation
 ```
 
 ---
@@ -182,6 +186,38 @@ Generate an API key. Requires JWT authentication.
 **Headers:** `Authorization: Bearer <token>`
 
 **Response `200`:** Raw API key string. This value is shown once and cannot be retrieved again.
+
+---
+
+### `GET /api/keys`
+
+List the authenticated user's API keys. Requires JWT authentication. Raw keys and hashes are never returned.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response `200`:**
+```json
+[
+  {
+    "id": 1,
+    "keyPrefix": "54139",
+    "active": true,
+    "createdAt": "2026-08-29T10:15:30"
+  }
+]
+```
+
+---
+
+### `DELETE /api/keys/{id}`
+
+Revoke an API key. Requires JWT authentication. Deactivates the key in the database and evicts its Redis cache entry, so the key stops authenticating immediately.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response `204`:** No content.
+
+**Response `404`:** The key does not exist or does not belong to the authenticated user.
 
 ---
 
@@ -272,6 +308,10 @@ curl -X POST http://localhost:8080/api/keys \
 # Make an authenticated request
 curl http://localhost:8080/api/dummy \
   -H "X-API-KEY: 54139b7b96764f5b91b6359a0b30f283"
+
+# List your keys, then revoke one by id
+curl http://localhost:8080/api/keys -H "Authorization: Bearer eyJ..."
+curl -X DELETE http://localhost:8080/api/keys/1 -H "Authorization: Bearer eyJ..."
 ```
 
 ---
