@@ -24,6 +24,9 @@ public class ApiKey {
     @Column(nullable = false,unique = true)
     private String keyHash;
 
+    @Column(length = 64, unique = true)
+    private String lookupHash;
+
     @Builder.Default
     private Boolean active=true;
 

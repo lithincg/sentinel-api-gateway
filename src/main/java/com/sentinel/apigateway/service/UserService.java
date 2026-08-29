@@ -1,20 +1,28 @@
 package com.sentinel.apigateway.service;
 
+import com.sentinel.apigateway.dto.ApiKeyResponse;
 import com.sentinel.apigateway.dto.LoginResponse;
 import com.sentinel.apigateway.dto.UserRegistrationRequest;
 import com.sentinel.apigateway.entity.ApiKey;
 import com.sentinel.apigateway.entity.User;
+import com.sentinel.apigateway.exception.ApiKeyNotFoundException;
 import com.sentinel.apigateway.exception.DuplicateUserException;
 import com.sentinel.apigateway.exception.InvalidCredentialsException;
 import com.sentinel.apigateway.exception.UserNotFoundException;
 import com.sentinel.apigateway.repository.ApiKeyRepository;
 import com.sentinel.apigateway.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -26,6 +34,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final ApiKeyRepository apiKeyRepository;
     private final JwtUtil jwtUtil;
+    private final StringRedisTemplate redisTemplate;
 
     @Transactional
     public User registerUser(UserRegistrationRequest userRegistrationRequest) {
@@ -53,6 +62,7 @@ public class UserService {
                                 .builder()
                                 .keyHash(hashedKey)
                                 .keyPrefix(previewKey)
+                                .lookupHash(sha256Hex(clearKey))
                                 .user(user.get())
                                 .build();
             apiKeyRepository.save(apiKey);
@@ -62,6 +72,39 @@ public class UserService {
 
         throw new UserNotFoundException("User not found");
 
+    }
+
+    @Transactional(readOnly = true)
+    public List<ApiKeyResponse> listApiKeys(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        return apiKeyRepository.findByUserOrderByCreatedAtDesc(user).stream()
+                .map(k -> new ApiKeyResponse(k.getId(), k.getKeyPrefix(), k.getActive(), k.getCreatedAt()))
+                .toList();
+    }
+
+    @Transactional
+    public void revokeApiKey(String email, Long keyId) {
+        ApiKey key = apiKeyRepository.findById(keyId)
+                .filter(k -> k.getUser().getEmail().equals(email))
+                .orElseThrow(() -> new ApiKeyNotFoundException("API key not found"));
+
+        key.setActive(false);
+        apiKeyRepository.save(key);
+
+        if (key.getLookupHash() != null) {
+            redisTemplate.delete(key.getLookupHash());
+        }
+    }
+
+    private String sha256Hex(String raw) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(raw.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Internal Security Configuration Error", e);
+        }
     }
 
     public String login(String email, String password){

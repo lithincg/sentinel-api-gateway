@@ -1,6 +1,7 @@
 package com.sentinel.apigateway.repository;
 
 import com.sentinel.apigateway.entity.ApiKey;
+import com.sentinel.apigateway.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,4 +16,6 @@ public interface ApiKeyRepository  extends JpaRepository<ApiKey,Long> {
     List<ApiKey> findByKeyPrefixAndActiveTrue(String keyPrefix);
     @Query("SELECT ak FROM ApiKey ak JOIN FETCH ak.user WHERE ak.keyPrefix = :keyPrefix AND ak.active = true")
     List<ApiKey> findByKeyPrefixAndActiveTrueWithUser(@Param("keyPrefix") String keyPrefix);
+
+    List<ApiKey> findByUserOrderByCreatedAtDesc(User user);
 }
