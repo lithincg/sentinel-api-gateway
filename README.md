@@ -10,8 +10,8 @@ A production-style API gateway built with Spring Boot 3.4. It pairs two authenti
 - **Layered authentication** — JWT for user sessions, API keys for programmatic access, with a full key lifecycle: issue, list, and revoke
 - **Cache-backed API key auth** — SHA-256 lookup (5-min TTL) eliminates per-request BCrypt cost; 94% lower latency, validated under load with k6
 - **Instant key revocation** — atomic DB deactivation plus Redis cache eviction, so a revoked key stops authenticating immediately rather than lingering until TTL
-- **First-class observability** — Prometheus metrics, Grafana dashboards (local), and Spring Boot Actuator health on the live deployment
-- **Deployed** on Railway with managed PostgreSQL and Redis
+- **First-class observability** — Prometheus metrics, Grafana dashboards, and Spring Boot Actuator health checks (database and Redis connectivity)
+- **Cloud-deployable** — runs on Railway with managed PostgreSQL and Redis; fully Dockerized and reproducible via Docker Compose
 
 ---
 
@@ -339,7 +339,7 @@ Both branches can be checked out to reproduce the before/after load test results
 
 ## Deployment
 
-Deployed on Railway with Spring Boot, PostgreSQL, and Redis as separate services.
+The gateway was deployed on Railway with Spring Boot, PostgreSQL, and Redis as separate services. The hosted instance is currently offline to avoid ongoing cost — the full deployment configuration (Dockerfile, `compose.yaml`) lives in the repo, so it can be redeployed in minutes.
 
 `JWT_SECRETKEY` is set as a Railway environment variable and is not committed to source. Database and Redis connection details are injected by Railway at runtime.
 
