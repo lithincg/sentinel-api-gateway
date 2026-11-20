@@ -23,7 +23,7 @@ jobs:
       - name: Run unit and integration tests
         run: |
           chmod +x mvnw
-          ./mvnw -B test
+          ./mvnw -B verify
 
       - name: Build Docker image
         run: docker build -t sentinel-gateway:ci .
