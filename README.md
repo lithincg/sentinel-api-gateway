@@ -1,5 +1,9 @@
 # Sentinel API Gateway
 
+[![CI](https://github.com/lithincg/sentinel-api-gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/lithincg/sentinel-api-gateway/actions/workflows/ci.yml)
+
+**Live Deployment:** https://sentinel-api-gateway-pimj.onrender.com *(Render Free Tier — first request after 15 min idle may take ~30–60s to wake)*
+
 A production-style API gateway built with Spring Boot 3.4. It pairs two authentication mechanisms and Redis-backed sliding-window rate limiting with the operational qualities that decide whether a service survives production: end-to-end graceful degradation when Redis fails, first-class observability (Prometheus, Grafana, Actuator), and measured, load-tested performance (96.6% latency reduction under stress, 24x throughput). Built to be defensible on reliability and operations, not just its feature list.
 
 ---
@@ -340,7 +344,14 @@ Both branches can be checked out to reproduce the before/after load test results
 
 ## Deployment
 
-Sentinel is configured for **$0 free-tier hosting** via `render.yaml` and `Dockerfile` using **Render** (Docker web service) + **Neon** (managed PostgreSQL) + **Upstash** (serverless TLS Redis).
+**Live API:** `https://sentinel-api-gateway-pimj.onrender.com`
+
+```bash
+curl https://sentinel-api-gateway-pimj.onrender.com/health
+# Sentinel is active. System Status: GREEN.
+```
+
+Sentinel is deployed for **$0 free-tier hosting** via `render.yaml` and `Dockerfile` using **Render** (Docker web service) + **Neon** (managed PostgreSQL) + **Upstash** (serverless TLS Redis).
 
 Required environment variables on Render:
 - `SPRING_DATASOURCE_URL` — Neon JDBC URL (`jdbc:postgresql://<host>/<db>?sslmode=require`)
