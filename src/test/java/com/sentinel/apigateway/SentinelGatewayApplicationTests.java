@@ -1,10 +1,8 @@
 package com.sentinel.apigateway;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class SentinelGatewayApplicationTests {
+class SentinelGatewayApplicationTests extends BaseIntegrationTest {
 
     @Test
     void contextLoads() {

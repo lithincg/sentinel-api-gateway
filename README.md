@@ -1,23 +1,23 @@
 # Sentinel API Gateway
 
-A production-style API gateway built with Spring Boot 3.4. It pairs two authentication mechanisms and Redis-backed sliding-window rate limiting with the operational qualities that decide whether a service survives production: graceful degradation when Redis fails, first-class observability (Prometheus, Grafana, Actuator), and measured, load-tested performance (94% latency reduction, 24x throughput). Built to be defensible on reliability and operations, not just its feature list.
+A production-style API gateway built with Spring Boot 3.4. It pairs two authentication mechanisms and Redis-backed sliding-window rate limiting with the operational qualities that decide whether a service survives production: end-to-end graceful degradation when Redis fails, first-class observability (Prometheus, Grafana, Actuator), and measured, load-tested performance (96.6% latency reduction under stress, 24x throughput). Built to be defensible on reliability and operations, not just its feature list.
 
 ---
 
 ## Features
 
-- **Resilient rate limiting** — sliding window backed by an atomic Redis Lua script, with **automatic in-memory failover** when Redis is unavailable, so the gateway degrades gracefully instead of failing outright
+- **Resilient rate limiting & auth failover** — sliding window backed by an atomic Redis Lua script, with **atomic in-memory rate-limit failover** (`ConcurrentHashMap.compute`) and **DB/BCrypt API key auth fallback** when Redis is unavailable, so the gateway degrades gracefully instead of failing outright
 - **Layered authentication** — JWT for user sessions, API keys for programmatic access, with a full key lifecycle: issue, list, and revoke
-- **Cache-backed API key auth** — SHA-256 lookup (5-min TTL) eliminates per-request BCrypt cost; 94% lower latency, validated under load with k6
+- **Cache-backed API key auth** — SHA-256 lookup (5-min TTL) eliminates per-request BCrypt cost; 96.6% lower stress latency (94% at baseline), validated under load with k6
 - **Instant key revocation** — atomic DB deactivation plus Redis cache eviction, so a revoked key stops authenticating immediately rather than lingering until TTL
-- **First-class observability** — Prometheus metrics, Grafana dashboards, and Spring Boot Actuator health checks (database and Redis connectivity)
-- **Cloud-deployable** — runs on Railway with managed PostgreSQL and Redis; fully Dockerized and reproducible via Docker Compose
+- **First-class observability** — Prometheus metrics, Grafana dashboards, and scoped Spring Boot Actuator health/metrics endpoints (`health, info, prometheus, metrics`)
+- **Cloud-deployable** — containerized with a multi-stage Java 21 Alpine Dockerfile, `render.yaml`, and environment-driven JDBC/TLS Redis URLs for Render + Neon + Upstash (as well as local Docker Compose)
 
 ---
 
 ## Performance
 
-Redis API key caching reduced average latency by 94% and increased throughput by 24x under stress conditions.
+Redis API key caching reduced average stress latency by 96.6% (94% at baseline) and increased throughput by 24x under stress conditions.
 
 | Test | VUs | Avg Latency | P95 Latency | Throughput | Failure Rate |
 |---|---|---|---|---|---|
@@ -64,7 +64,7 @@ Controller / Business Logic
 
 **Deterministic lookup hash for revocation** — The cache is keyed by `SHA-256(rawKey)`, but the raw key is never persisted (only its BCrypt hash is). That leaves revocation with no way to compute the cache entry to delete. Storing a SHA-256 lookup hash alongside each key closes the gap: revocation deactivates the database record *and* deletes the exact Redis entry, so a revoked key stops authenticating immediately instead of surviving until the 5-minute TTL. Ownership is enforced on revoke — a key belonging to another user returns `404`, never leaking whether that id exists.
 
-**In-memory fallback** — Redis is a network dependency. If it becomes unavailable, the gateway continues rate limiting per-instance using `ConcurrentHashMap` and `AtomicInteger`. The trade-off is that per-instance limits do not coordinate across replicas, but availability is maintained.
+**In-memory & auth fallback** — Redis is a network dependency. If it becomes unavailable, rate limiting fails over per-instance using atomic `ConcurrentHashMap.compute(...)` window tracking (`InMemoryRateLimitRepository`), and `ApiKeyAuthFilter` falls back to PostgreSQL + BCrypt verification instead of failing requests. The trade-off is that per-instance rate limits do not coordinate across replicas, but availability is maintained.
 
 ---
 
@@ -74,13 +74,14 @@ Controller / Business Logic
 |---|---|
 | Runtime | Java 21, Spring Boot 3.4 |
 | Security | Spring Security (stateless) |
-| Rate Limiting | Redis 7.2 (sorted sets + Lua), in-memory fallback |
+| Rate Limiting | Redis 7.2 (sorted sets + Lua), atomic in-memory fallback |
 | Session Auth | JWT via jjwt 0.12.6 |
 | Programmatic Auth | API key + BCrypt + Redis cache |
 | Database | PostgreSQL 16 + Flyway migrations |
 | Observability | Micrometer, Prometheus, Grafana |
 | Load Testing | k6 |
-| Deployment | Railway |
+| CI/CD | GitHub Actions (JUnit 5, Mockito, Testcontainers, Docker build) |
+| Deployment | Render (Docker) + Neon (PostgreSQL) + Upstash (Redis) |
 
 ---
 
@@ -322,7 +323,7 @@ Prometheus metrics are exposed at `/actuator/prometheus`. The Docker Compose sta
 
 Grafana panels include JVM heap usage, HTTP request rate by endpoint, P95 and average latency, and rate limit rejections.
 
-Prometheus and Grafana are local only and are not included in the Railway deployment.
+Prometheus and Grafana are local only and are not included in the hosted free-tier deployment.
 
 ---
 
@@ -339,9 +340,16 @@ Both branches can be checked out to reproduce the before/after load test results
 
 ## Deployment
 
-The gateway was deployed on Railway with Spring Boot, PostgreSQL, and Redis as separate services. The hosted instance is currently offline to avoid ongoing cost — the full deployment configuration (Dockerfile, `compose.yaml`) lives in the repo, so it can be redeployed in minutes.
+Sentinel is configured for **$0 free-tier hosting** via `render.yaml` and `Dockerfile` using **Render** (Docker web service) + **Neon** (managed PostgreSQL) + **Upstash** (serverless TLS Redis).
 
-`JWT_SECRETKEY` is set as a Railway environment variable and is not committed to source. Database and Redis connection details are injected by Railway at runtime.
+Required environment variables on Render:
+- `SPRING_DATASOURCE_URL` — Neon JDBC URL (`jdbc:postgresql://<host>/<db>?sslmode=require`)
+- `SPRING_DATASOURCE_USERNAME` — Neon username
+- `SPRING_DATASOURCE_PASSWORD` — Neon password
+- `REDIS_URL` — Upstash TLS URL (`rediss://default:<password>@<host>.upstash.io:6379`)
+- `JWT_SECRETKEY` — random 32+ character signing secret
+
+*(Note: Render's free web tier spins down after 15 minutes of inactivity, so the first request after idle experiences a ~30–60s cold start.)*
 
 ---
 
@@ -351,6 +359,9 @@ The gateway was deployed on Railway with Spring Boot, PostgreSQL, and Redis as s
 ./mvnw test
 ```
 
-- **Unit tests:** `RateLimiterTest` — concurrent access correctness, per-user isolation
-- **Mock tests:** `UserRepositoryTest`, `ApiKeyRepositoryTest`
-- **Integration test:** `AuthControllerIT` — Testcontainers with a real PostgreSQL instance
+- **Concurrency & Unit tests:**
+  - `RateLimiterTest` — 1,000-thread `CountDownLatch` concurrency test asserting exact 100 allowed / 900 blocked limits, plus per-user isolation
+  - `UserServiceTest` — registration, duplicate checks, login, SHA-256 `lookupHash` API key generation, ownership-enforced revocation, Redis cache eviction & outage resilience
+  - `ApiKeyAuthFilterTest` — `shouldNotFilter` routing, Redis cache hit/miss, Redis outage DB/BCrypt fallback, `401` rejections
+- **Integration tests:** `AuthControllerIT`, `SentinelGatewayApplicationTests` — Testcontainers against real PostgreSQL 16
+- **CI:** GitHub Actions (`.github/workflows/ci.yml`) runs `./mvnw -B test` and `docker build` on every push and pull request to `main`.

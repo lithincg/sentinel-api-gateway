@@ -12,6 +12,7 @@ import com.sentinel.apigateway.exception.UserNotFoundException;
 import com.sentinel.apigateway.repository.ApiKeyRepository;
 import com.sentinel.apigateway.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -93,7 +95,11 @@ public class UserService {
         apiKeyRepository.save(key);
 
         if (key.getLookupHash() != null) {
-            redisTemplate.delete(key.getLookupHash());
+            try {
+                redisTemplate.delete(key.getLookupHash());
+            } catch (Exception e) {
+                log.warn("Redis cache eviction failed during key revocation: {}", e.getMessage());
+            }
         }
     }
 

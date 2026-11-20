@@ -6,6 +6,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,6 +22,7 @@ import java.util.Collections;
 import java.util.HexFormat;
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ApiKeyAuthFilter extends OncePerRequestFilter {
@@ -70,7 +72,12 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
             throw new RuntimeException("Internal Security Configuration Error", e);
         }
 
-        String cachedEmail = redisTemplate.opsForValue().get(encodedKey);
+        String cachedEmail = null;
+        try {
+            cachedEmail = redisTemplate.opsForValue().get(encodedKey);
+        } catch (Exception e) {
+            log.warn("Redis cache lookup failed, falling back to DB auth: {}", e.getMessage());
+        }
         if (cachedEmail != null) {
             SecurityContextHolder.getContext().setAuthentication(
                     new UsernamePasswordAuthenticationToken(cachedEmail, null, Collections.emptyList())
@@ -85,7 +92,11 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
         for (var key : candidates) {
             if (passwordEncoder.matches(rawKey, key.getKeyHash())) {
                 String email = key.getUser().getEmail();
-                redisTemplate.opsForValue().set(encodedKey, email, 5, TimeUnit.MINUTES);
+                try {
+                    redisTemplate.opsForValue().set(encodedKey, email, 5, TimeUnit.MINUTES);
+                } catch (Exception e) {
+                    log.warn("Redis cache write failed after DB auth: {}", e.getMessage());
+                }
 
                 SecurityContextHolder.getContext().setAuthentication(
                         new UsernamePasswordAuthenticationToken(email, null, Collections.emptyList())

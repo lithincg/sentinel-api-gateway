@@ -1,6 +1,6 @@
 # Load Testing — Sentinel API Gateway
 
-This document covers the methodology, configuration, and results for all four load tests run against Sentinel API Gateway. The tests demonstrate a before/after optimization story: API key caching using Redis eliminated repeated BCrypt verification, producing a 94% latency reduction and 24x throughput increase under stress.
+This document covers the methodology, configuration, and results for all four load tests run against Sentinel API Gateway. The tests demonstrate a before/after optimization story: API key caching using Redis eliminated repeated BCrypt verification, producing a 96.6% average latency reduction under stress (94% at baseline) and 24x throughput increase under stress.
 
 ---
 
@@ -227,7 +227,7 @@ The raw API key is a secret. If Redis is compromised, an attacker with `KEYS *` 
 
 **Why 5-minute TTL?**
 
-Long enough to cover realistic request bursts within a session. Short enough that a revoked key is ejected from cache within 5 minutes without requiring active cache invalidation. Immediate invalidation on revoke is a planned feature — the correct implementation would delete the cache entry at the point of revocation.
+Long enough to cover realistic request bursts within a session. Short enough that a revoked key is ejected from cache within 5 minutes even without active invalidation. Immediate invalidation on revoke is implemented via `DELETE /api/keys/{id}`, which deactivates the key in PostgreSQL and immediately deletes its SHA-256 `lookup_hash` entry from Redis.
 
 ---
 

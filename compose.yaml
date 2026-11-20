@@ -12,6 +12,11 @@ services:
       - "6399:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinel_user -d sentinel_gateway"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     restart: always
 
   redis:
@@ -19,16 +24,29 @@ services:
     container_name: sentinel-redis
     ports:
       - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     restart: always
 
   sentinel-gateway:
     build: .
     container_name: sentinel-gateway
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/sentinel_gateway
+      - SPRING_DATASOURCE_USERNAME=sentinel_user
+      - SPRING_DATASOURCE_PASSWORD=sentinel_pass
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRETKEY=${JWT_SECRETKEY:-dev-only-sentinel-jwt-secret-key-at-least-32-bytes}
     ports:
       - "8080:8080"
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: always
 
   prometheus:

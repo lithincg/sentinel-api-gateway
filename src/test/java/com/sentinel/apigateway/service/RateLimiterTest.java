@@ -4,6 +4,9 @@ import com.sentinel.apigateway.repository.InMemoryRateLimitRepository;
 import com.sentinel.apigateway.repository.RateLimitRepository;
 import org.junit.jupiter.api.Test;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RateLimiterTest {
@@ -13,14 +16,20 @@ class RateLimiterTest {
         RateLimitRepository repository = new InMemoryRateLimitRepository();
         RateLimiterService service = new RateLimiterService(repository);
         int totalRequests = 1000;
-        CountDownLatch latch = new CountDownLatch(1);
+        CountDownLatch startLatch = new CountDownLatch(1);
+        AtomicInteger allowed = new AtomicInteger(0);
+        AtomicInteger blocked = new AtomicInteger(0);
         Thread[] threads = new Thread[totalRequests];
 
         for (int i = 0; i < totalRequests; i++) {
             threads[i] = new Thread(() -> {
                 try {
-                    latch.await();
-                    service.allowRequest("USER_X");
+                    startLatch.await();
+                    if (service.allowRequest("USER_X")) {
+                        allowed.incrementAndGet();
+                    } else {
+                        blocked.incrementAndGet();
+                    }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
@@ -28,14 +37,14 @@ class RateLimiterTest {
             threads[i].start();
         }
 
-        latch.countDown();
+        startLatch.countDown();
 
         for (Thread t : threads) {
             t.join();
         }
-        System.out.println("Actual Count: " + service.getRequestCount("USER_X"));
-        assertTrue(service.getRequestCount("USER_X") > 0);
-        assertTrue(service.getRequestCount("USER_X") <= totalRequests);
+        assertEquals(100, allowed.get(), "Exactly 100 requests should be allowed per window");
+        assertEquals(900, blocked.get(), "Remaining 900 concurrent requests should be rate-limited");
+        assertEquals(100, service.getRequestCount("USER_X"));
     }
     @Test
     void testPerUserIsolation() {
@@ -44,15 +53,15 @@ class RateLimiterTest {
         String userA = "ALPHA";
         String userB = "BETA";
         for (int i = 0; i < 100; i++) {
-            service.allowRequest(userA);
+            assertTrue(service.allowRequest(userA));
         }
 
         boolean allowedA = service.allowRequest(userA);
-        org.junit.jupiter.api.Assertions.assertFalse(allowedA, "User A should be blocked");
+        assertFalse(allowedA, "User A should be blocked");
 
         boolean allowedB = service.allowRequest(userB);
-        org.junit.jupiter.api.Assertions.assertTrue(allowedB, "User B should be allowed even if A is blocked");
+        assertTrue(allowedB, "User B should be allowed even if A is blocked");
 
-        org.junit.jupiter.api.Assertions.assertEquals(1, service.getRequestCount(userB));
+        assertEquals(1, service.getRequestCount(userB));
     }
 }
